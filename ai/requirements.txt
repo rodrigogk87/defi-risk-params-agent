@@ -1,0 +1,7 @@
+ddgs
+llama-index
+llama-index-llms-ollama
+python-dotenv
+requests
+xai-sdk
+python-dotenv

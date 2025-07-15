@@ -1,29 +1,30 @@
+import os
+from dotenv import load_dotenv
 import asyncio
 import requests
 import json
 from ddgs import DDGS
-from llama_index.llms.ollama import Ollama
+from xai_sdk import Client
+from xai_sdk.chat import user
+
 from llama_index.core.workflow import Workflow, StartEvent, StopEvent, step, Event
-from dotenv import load_dotenv
-import os
 
 load_dotenv()
+
+# Init Grok client
+client = Client(api_key=os.getenv("XAI_API_KEY"))
 
 class DataEvent(Event):
     data: dict
 
-
 class ProposalEvent(Event):
     proposal_json: str
-
 
 class RiskAdjustWorkflow(Workflow):
     @step
     async def fetch_data(self, ev: StartEvent) -> DataEvent:
-        # === On-chain data ===
         try:
-            backend_url = os.getenv("BACKEND_API_URL", "http://localhost:3001")
-            resp = requests.get(f"{backend_url}/api/status", timeout=5)
+            resp = requests.get("http://localhost:3001/api/status", timeout=5)
             resp.raise_for_status()
             onchain = resp.json()
         except Exception as e:
@@ -37,7 +38,6 @@ class RiskAdjustWorkflow(Workflow):
             print("❌ Datos no válidos (token_price o collateral_factor son 0)")
             return DataEvent(data={"valid": False})
 
-        # === Fear & Greed Index ===
         try:
             fng_resp = requests.get("https://api.alternative.me/fng/", timeout=5)
             fng_resp.raise_for_status()
@@ -47,7 +47,6 @@ class RiskAdjustWorkflow(Workflow):
             print(f"⚠️ Error fetching Fear & Greed Index: {e}")
             greed_value = 50
 
-        # === News snippets from DuckDuckGo ===
         try:
             with DDGS() as ddgs:
                 results = ddgs.news("crypto market sentiment", region="us-en", max_results=10)
@@ -76,15 +75,10 @@ class RiskAdjustWorkflow(Workflow):
     @step
     async def propose_adjustments(self, ev: DataEvent) -> ProposalEvent:
         if not ev.data.get("valid"):
-            print("⚠️ No se pudieron obtener datos confiables. No se realizarán cambios.")
+            print("⚠️ No se pudieron obtener datos confiibles. No se realizarán cambios.")
             return ProposalEvent(proposal_json=json.dumps({
                 "message": "No valid data available. No adjustments proposed."
             }))
-
-        ollama_model = os.getenv("OLLAMA_MODEL", "qwen2:7b")
-        ollama_base_url = os.getenv("OLLAMA_BASE_URL", "http://ollama:11434")
-        ollama_timeout = float(os.getenv("OLLAMA_TIMEOUT", "120.0"))
-        llm = Ollama(model=ollama_model, base_url=ollama_base_url, request_timeout=ollama_timeout)
 
         prompt = f"""
         You are a DeFi risk strategy advisor for a lending protocol.
@@ -112,10 +106,15 @@ class RiskAdjustWorkflow(Workflow):
         Do not include any extra text or markdown. Only output the JSON.
         """
 
-        print("\n💬 Prompt to LLM:\n", prompt[:1000])
-        response = await llm.acomplete(prompt)
-        raw_text = response.text
-        print("\n=== LLM Raw Response ===")
+        print("\n💬 Prompt to Grok:\n", prompt[:1000])
+
+        # Create chat with Grok
+        chat = client.chat.create(model="grok-4")
+        chat.append(user(prompt))
+        response = chat.sample()
+        raw_text = response.content
+
+        print("\n=== Grok Raw Response ===")
         print(raw_text)
 
         return ProposalEvent(proposal_json=raw_text)
@@ -125,10 +124,10 @@ class RiskAdjustWorkflow(Workflow):
         try:
             proposal = json.loads(ev.proposal_json)
         except Exception as e:
-            print(f"❌ Error parsing LLM JSON: {e}")
-            return StopEvent(result="⚠️ Could not parse LLM proposal.")
+            print(f"❌ Error parsing Grok JSON: {e}")
+            return StopEvent(result="⚠️ Could not parse Grok proposal.")
 
-        msg = "✅ Final proposal from LLM:\n"
+        msg = "✅ Final proposal from Grok:\n"
         msg += f"- collateral_factor: {proposal.get('collateral_factor')}\n"
         msg += f"- reasoning: {proposal.get('reasoning')}\n"
         print("🚀 Final execution message:", msg)
@@ -143,31 +142,3 @@ async def main():
 
 
 asyncio.run(main())
-
-
-# ✅ Cosas importantes
-# 🔐 Para CryptoPanic, debes usar tu API key en https://cryptopanic.com/developers/api/.
-# Si querés usar Alternative.me Fear & Greed, no requiere API key.
-# Si querés un sentiment más avanzado, se puede usar Tavily o scraping adicional.
-
-# using crypto_panic_token (paid)
-#  try:
-#         crypto_panic_token = os.getenv("CRYPTO_PANIC_API_KEY")
-#         if not crypto_panic_token:
-#             raise ValueError("CRYPTO_PANIC_API_KEY not set")
-
-#         headers = {"User-Agent": "Mozilla/5.0"}
-#         news_resp = requests.get(
-#             f"https://cryptopanic.com/api/v1/posts/?auth_token={crypto_panic_token}&public=true",
-#             headers=headers,
-#             timeout=5,
-#         )
-#         news_resp.raise_for_status()
-
-#         if "bearish" in news_resp.text.lower():
-#             news_sentiment = "negative"
-#         else:
-#             news_sentiment = "positive"
-#     except Exception as e:
-#         print(f"⚠️ Error fetching news sentiment: {e}")
-#         news_sentiment = "neutral"

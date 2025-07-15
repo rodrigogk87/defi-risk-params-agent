@@ -18,3 +18,7 @@ backend/node_modules
 
 #blockchain
 blockchain/lib
+blockchain/broadcast/*
+
+#others
+others/*

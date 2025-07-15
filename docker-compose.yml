@@ -1,0 +1,54 @@
+version: "3.9"
+
+services:
+  blockchain:
+    build:
+      context: ./blockchain
+    ports:
+      - "8545:8545"
+    healthcheck:
+      test: ["CMD", "/app/script/healthcheck.sh"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    volumes:
+      - shared-data:/app/blockchain
+
+  backend:
+    build:
+      context: ./backend
+    env_file:
+      - ./ai/.env
+    ports:
+      - "3001:3001"
+    volumes:
+      - shared-data:/app/blockchain
+    depends_on:
+      blockchain:
+        condition: service_healthy
+
+  ollama:
+    build:
+      context: ./ollama
+    ports:
+      - "11434:11434"
+    healthcheck:
+      test: ["CMD", "sh", "-c", "curl -s http://localhost:11434/api/tags | grep -q 'qwen2:7b'"]
+      interval: 30s
+      timeout: 10s
+      retries: 20
+    depends_on:
+      backend:
+          condition: service_started
+
+  ai-agent:
+    build:
+      context: ./ai
+    profiles:
+      - manual
+    depends_on:
+      ollama:
+        condition: service_healthy
+
+volumes:
+  shared-data:

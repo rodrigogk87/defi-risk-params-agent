@@ -1,6 +1,7 @@
 require("dotenv").config();
 const { ethers } = require("ethers");
 const fs = require("fs");
+const path = require("path");
 const express = require("express");
 
 const app = express();
@@ -9,7 +10,8 @@ app.use(express.json()); // Para parsear JSON en requests POST
 const PORT = process.env.PORT || 3001;
 
 // Leer addresses.json
-const addresses = JSON.parse(fs.readFileSync("../blockchain/script/addresses.json", "utf-8"));
+const addressesPath = path.resolve("/app/blockchain/script/addresses.json");
+const addresses = JSON.parse(fs.readFileSync(addressesPath, "utf8"));
 
 const comptrollerAddress = addresses.find(a => a.contract === "Comptroller")?.address;
 const cTokenAddress = addresses.find(a => a.contract === "CErc20")?.address;
@@ -26,13 +28,14 @@ console.log("cToken:", cTokenAddress);
 console.log("Oracle:", oracleAddress);
 
 // RPC y wallet
-const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
+const rpcUrl = process.env.RPC_URL || "http://blockchain:8545";
+const provider = new ethers.JsonRpcProvider(rpcUrl);
 const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
 
 // ABIs
-const comptrollerArtifacts = require("../blockchain/out/Comptroller.sol/Comptroller.json");
-const cTokenArtifacts = require("../blockchain/out/CErc20.sol/CErc20.json");
-const oracleArtifacts = require("../blockchain/out/SimplePriceOracle.sol/SimplePriceOracle.json");
+const comptrollerArtifacts = require("/app/blockchain/out/Comptroller.sol/Comptroller.json");
+const cTokenArtifacts = require("/app/blockchain/out/CErc20.sol/CErc20.json");
+const oracleArtifacts = require("/app/blockchain/out/SimplePriceOracle.sol/SimplePriceOracle.json");
 
 // Instanciar contratos
 const comptroller = new ethers.Contract(comptrollerAddress, comptrollerArtifacts.abi, wallet);

@@ -1,5 +1,3 @@
-#you must run this inside blockchain
-
 #!/bin/bash
 
 set -e
@@ -23,7 +21,6 @@ fi
 
 echo "📄 Extracting contract addresses..."
 
-# Extract contract addresses from broadcast JSON
 jq '[
   .transactions[]
   | select(.contractAddress != null)
@@ -33,3 +30,13 @@ jq '[
 | map({contract: .contractName, address: .contractAddress})' "$BROADCAST_JSON" > "$OUTPUT_JSON"
 
 echo "✅ Addresses saved to $OUTPUT_JSON"
+echo "📁 Moving addresses.json to shared volume path..."
+mkdir -p /app/blockchain/script
+cp ./script/addresses.json /app/blockchain/script/addresses.json
+
+echo "📄 Copying compiled artifacts to /app/blockchain/out..."
+mkdir -p /app/blockchain/out
+cp -r ./out/* /app/blockchain/out/
+echo "✅ Artifacts copied."
+
+touch /app/script/deploy_done.flag
