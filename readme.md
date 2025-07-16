@@ -1,4 +1,3 @@
-
 # 🛡️ DeFi Risk-Managed Lending Protocol
 
 ## 🔥 Overview
@@ -64,17 +63,46 @@ Backend validates and submits updates on-chain
 
 ---
 
-## 🧪 Testing plan
+## 🐳 Dockerized Setup
 
-See TEST_PLAN.md for detailed tests.
+### Build and run core services
+
+```bash
+docker-compose up --build
+```
+
+This starts:
+
+- Local blockchain (Anvil) and deploys contracts automatically.
+- Backend service exposing the API.
+- Ollama container (serving LLM models, e.g., gemma3:1b).
+
+### Running the AI Agent
+
+The agent container is set up with a manual profile so it does not run automatically.
+
+```bash
+docker-compose run ai-agent
+```
+
+This triggers a one-time execution of the risk analysis workflow.
+
+### Adjusting models
+
+- Change model in `.env` (e.g., `OLLAMA_MODEL=gemma3:1b`).
+- Make sure your system has enough RAM if you choose a larger model.
 
 ---
 
+## 🧪 Testing Plan
+
+See TEST\_PLAN.md for detailed tests.
+
 ---
 
-## 🧪 Future plan
+## 🌱 Future Plan
 
-See FUTURE_PLAN.md for detailed tests.
+See FUTURE\_PLAN.md for planned extensions.
 
 ---
 
@@ -87,3 +115,4 @@ Open issues or PRs to suggest improvements or request new features.
 ## 📄 License
 
 MIT
+
