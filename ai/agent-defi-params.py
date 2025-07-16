@@ -81,7 +81,7 @@ class RiskAdjustWorkflow(Workflow):
                 "message": "No valid data available. No adjustments proposed."
             }))
 
-        ollama_model = os.getenv("OLLAMA_MODEL", "qwen2:7b")
+        ollama_model = os.getenv("OLLAMA_MODEL", "gemma3:1b")
         ollama_base_url = os.getenv("OLLAMA_BASE_URL", "http://ollama:11434")
         ollama_timeout = float(os.getenv("OLLAMA_TIMEOUT", "120.0"))
         llm = Ollama(model=ollama_model, base_url=ollama_base_url, request_timeout=ollama_timeout)
@@ -123,7 +123,9 @@ class RiskAdjustWorkflow(Workflow):
     @step
     async def finalize(self, ev: ProposalEvent) -> StopEvent:
         try:
-            proposal = json.loads(ev.proposal_json)
+            import re
+            cleaned_text = re.sub(r"```(?:json)?", "", ev.proposal_json).strip()
+            proposal = json.loads(cleaned_text)
         except Exception as e:
             print(f"❌ Error parsing LLM JSON: {e}")
             return StopEvent(result="⚠️ Could not parse LLM proposal.")
@@ -133,6 +135,7 @@ class RiskAdjustWorkflow(Workflow):
         msg += f"- reasoning: {proposal.get('reasoning')}\n"
         print("🚀 Final execution message:", msg)
         return StopEvent(result=msg)
+
 
 
 async def main():

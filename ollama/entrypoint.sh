@@ -1,12 +1,16 @@
-#!/bin/bash
+#!/bin/sh
+set -e
 
-# Start ollama server in background
+echo "👉 Starting Ollama server in background..."
 ollama serve &
-# Esperar un poco a que levante
+
+echo "⏳ Waiting a few seconds for Ollama to start..."
 sleep 5
 
-# Pull el modelo
-ollama pull qwen2:7b
+echo "⬇️ Pulling model gemma3:1b ..."
+ollama pull gemma3:1b
 
-# Esperar al server para no terminar el script
+echo "✅ Model downloaded. Waiting for Ollama process..."
+# Esperar el proceso ollama serve sin usar -n
 wait
+

@@ -31,7 +31,7 @@ This repository implements a **minimal Compound-like DeFi lending protocol** enh
 - Periodically monitors:
   - On-chain data (collateral factors, borrow metrics).
   - Off-chain data (fear & greed index, news snippets via DuckDuckGo).
-- Uses an LLM (Ollama with Qwen2:7b) to propose adjustments.
+- Uses an LLM (Ollama with gemma3:1b) to propose adjustments.
 - Supports a multi-step workflow (fetch → propose → finalize).
 - Designed to either:
   - Emit alerts to governance channels (e.g., Discord, Telegram).
