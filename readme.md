@@ -94,18 +94,6 @@ This triggers a one-time execution of the risk analysis workflow.
 
 ---
 
-## 🧪 Testing Plan
-
-See TEST\_PLAN.md for detailed tests.
-
----
-
-## 🌱 Future Plan
-
-See FUTURE\_PLAN.md for planned extensions.
-
----
-
 ## 💬 Contributions
 
 Open issues or PRs to suggest improvements or request new features.
